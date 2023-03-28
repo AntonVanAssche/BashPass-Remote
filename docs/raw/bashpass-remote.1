@@ -1,0 +1,54 @@
+.TH "BASHPASS-REMOTE" "1" "2022-03-28" "BASHPASS 2022-03-28" "BASHPASS-REMOTE" "1"
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq
+.ad l
+.nh
+.SH "NAME"
+bashpass-remote \- command-line tool to manage passwords on a remote server using BashPass.
+.SH "SYNOPSIS"
+bashpass-remote [\fI<user>@<host>\fR][\fIOPTIONS\fR] [\fINAME\fR]
+.RS 4
+Note that a working network connection is required to use this tool.
+.RE
+.SH "DESCRIPTION"
+This command-line tool, along with \fBSSH\fR(1), allows users to securely manage their passwords stored on a remote server where BashPass is installed. It serves as a wrapper around \fBSSH\fR(1) and \fBBASHPASS\fR(1), enabling users to manage their passwords on a remote server without needing to install BashPass locally.
+.RE
+.SH "OPTIONS"
+\fB-h\fR, \fB--help\fR
+.RS 4
+Display a brief help message, for BashPass-Remote as well as for BashPass, when a connection is established.
+.RE
+.PP
+\fB-v\fR, \fB--version\fR
+.RS 4
+Display the version number of your BashPass-Remote installation, along with the version number of BashPass on the server, when a connection is established.
+.RE
+.PP
+Refer to the \fBBASHPASS\fR(1) manual for all options that correspond to BashPass itself.
+.RE
+.SH "EXAMPLES"
+Let's say you want to add a new password called 'gmail' on the server, with '192.168.0.4' as IP and 'pi' as username.
+.RS 4
+bashpass-remote pi@192.168.0.4 --add gmail
+.RE
+.PP
+Let's say we now want to remove the password we created in the previous example.
+.RS 4
+bashpass-remote pi@192.168.0.4 --delete gmail
+.RE
+.PP
+.SH "FILES AND DIRECTORIES"
+/usr/bin/bashpass (\fBFor Linux and BSD systems\fR)
+.RE
+/usr/share/bin/bashpass (\fBFor Mac OS systems\fR)
+.RE
+.SH "SEE ALSO"
+\fBBASHPASS\fR(1)
+.SH "AUTHOR"
+\fBAnton Van Assche\fR <\fIhttps://www.github.com/AntonVanAssche\fR>
+.SH "BUGS"
+For bug reports and other issues regarding \fBBashPass\fR, including suggestions, please report to the GitHub link below, through which the project is developed.
+.PP
+.RS 2
+\fIhttps://github.com/AntonVanAssche/BashPass-Remote\fR
+.RE
