@@ -42,7 +42,7 @@ get_help() {
 help() {
     printf '%s\n' "\
 Bashpass-Remote version: ${VERSION}
-A remote wrapper for command -v bashpass that uses ssh -t.
+A wrapper for BashPass, which allows you to manage your BashPass passwords stored on a remote server.
 
 bashpass-remote [user@host] [option] [name]         - Basic command structure.
 
