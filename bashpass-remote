@@ -1,0 +1,229 @@
+#!/usr/bin/env bash
+
+set -o errexit  # Abort on nonzero exit code.
+set -o noglob   # Disable globbing.
+set +o xtrace   # Disable debug mode.
+set -o pipefail # Don't hide errors within pipes.
+
+# Current version.
+readonly VERSION="1.0"
+
+# Whenever an error occurs, we want to notify the user about it.
+# This is a basic function that wil print the corresponding error
+# message to stderr, and will exit with the given exit status.
+error_out() {
+    printf '\n'
+    printf 'An error occurred: %s' "${1}" >&2
+    printf '\n'
+    exit "${2}"
+}
+
+# Surprisingly, 'sleep' is an external program and not a Bash built-in.
+# So their is a small possibility that it is not installed on a system,
+# although it is very unlikely. We can use 'read' to replace the 'sleep'
+# command.
+sleep() {
+    read -rt "${1}" <> <(:) || :
+}
+
+# Wrapper for 'command -v' to avoid spamming '> /dev/null'.
+# It also protects against user aliasses and functions.
+has() {
+    local command
+    command=$(command -v "${1}") 2> /dev/null || error_out "${1} is required" 127
+    [[ -x ${command} ]] || error_out "${1} is not an executable" 1
+}
+
+# Print out all available BashPass options.
+get_help() {
+    ssh -t "${user}@${host}" '$(command -v bashpass) --help'
+}
+
+help() {
+    printf '%s\n' "\
+Bashpass-Remote version: ${VERSION}
+A remote wrapper for command -v bashpass that uses ssh -t.
+
+bashpass-remote [user@host] [option] [name]         - Basic command structure.
+
+Note:
+    All parameters are required, except for the 'help' and 'version' options.
+
+Options:
+    --help, -h                                     - Print out this help message.
+    --version, -v                                  - Print out the current version.
+"
+    if [[ "${user}" && "${host}" ]]; then
+        get_help
+    fi
+}
+
+# Print out the current BashPass version.
+get_version() {
+    printf '%s' "$(ssh -t "${user}@${host}" '$(command -v bashpass) --version')"
+}
+
+version() {
+    printf 'BashPass-Remote version: %s\n' "${VERSION}"
+    if [[ "${user}" && "${host}" ]]; then
+        get_version
+    fi
+}
+
+add() {
+    if [[ "${1}" ]]; then
+        ssh -t "${user}@${host}" '$(command -v bashpass) --add' "${1}"
+    else
+        error_out "no name given" 22
+    fi
+}
+
+update() {
+    if [[ "${1}" ]]; then
+        ssh -t "${user}@${host}" '$(command -v bashpass) --update' "${1}"
+    else
+        error_out "no name given" 22
+    fi
+}
+
+delete() {
+    if [[ "${1}" ]]; then
+        ssh -t "${user}@${host}" '$(command -v bashpass) --delete' "${1}"
+    else
+        error_out "no name given" 22
+    fi
+}
+
+show() {
+    if [[ "${1}" ]]; then
+        ssh -t "${user}@${host}" '$(command -v bashpass) --show' "${1}"
+    else
+        error_out "no name given" 22
+    fi
+}
+
+list() {
+    ssh -t "${user}@${host}" '$(command -v bashpass) --list'
+}
+
+copy() {
+    # Detect 'xclip' (X11), 'xsel' (X11) or 'wl-copy' (Wayland).
+    # Determine which clipboard command to use.
+    if command -v xclip &> /dev/null; then
+        clipboard_command="xclip -selection clipboard"
+    elif command -v xsel &> /dev/null; then
+        clipboard_command="xsel --clipboard"
+    elif command -v wl-copy &> /dev/null; then
+        clipboard_command="wl-copy"
+    else
+        error_out "xclip, xsel, or wl-copy is required" 127
+    fi
+
+    # Ignore terminal interrupts (CTRL+C).
+    # We do this to prevent the ability to kill the script while
+    # the password is still in the clipboard.
+    trap '' INT
+
+    password=$(ssh -t "${user}@${host}" '$(command -v bashpass) --show' "${1}") || \
+        error_out "failed to retrieve password '${1}' from remote" 1
+    password=${password#*: }
+
+    if [[ "${1}" ]]; then
+        if printf '%s' "${password}" | "${clipboard_command}"; then
+            printf 'Password %s has been copied to the clipboard' "'${1}'"
+            printf '\n'
+        else
+            error_out "failed to copy password '${1}' to the clipboard." 1
+        fi
+    else
+        error_out "no name given" 22
+    fi
+
+    # Wait for the timer to end, and then clear the clipboard.
+    # The duration ('timer') can be changed in the config file.
+    sleep 10 || kill 0
+
+    if command -v xclip &> /dev/null; then
+        xclip -selection clipboard < /dev/null
+    elif command -v xsel &> /dev/null; then
+        xsel --clipboard < /dev/null
+    elif command -v wl-copy &> /dev/null; then
+        wl-copy --clear
+    fi
+
+    printf 'Clipboard has been cleared to ensure it cannot be leaked.'
+    printf '\n'
+}
+
+sync() {
+    if [[ ${#} -eq 2 ]]; then
+        ssh -t "${user}@${host}" '$(command -v bashpass) --sync' "${1}" "${2}"
+    else
+        [[ -z "${1}" ]] && error_out "no remote host given" 22
+        [[ -z "${2}" ]] && error_out "no sync option given" 1
+    fi
+}
+
+main() {
+    # We only want non-root users to use BashPass.
+    [[ "${UID}" == 0 ]] && error_out "permission denied" 13
+
+    # Since this tool is a remote wrapper for BashPass that uses SSH,
+    # we need to make sure that the user has SSH installed.
+    has "ssh"
+
+    # The first argument is the user and host that we want to connect to.
+    # Since this is in the form of user@host, we need to split it up.
+    # The user is the first part, and the host is the second part.
+    if [[ "${1}" =~ "@" ]]; then
+        user="${1%%@*}"
+        host="${1#*@}"
+
+        printf 'BashPass-Remote will use the following user and host:\n'
+        printf 'User: %s\n' "${user}"
+        printf 'Host: %s\n' "${host}"
+    else
+        if [[ "${1}" == "--help" || "${1}" == "-h" ]]; then
+            help
+            exit 0
+        elif [[ "${1}" == "--version" || "${1}" == "-v" ]]; then
+            version
+            exit 0
+        else
+            error_out "invalid user@host" 22
+        fi
+    fi
+
+    # Now we need to check whether we can make a connection to the host.
+    # If we can't, we need to notify the user about it.
+    ssh -o BatchMode=yes \
+        -o StrictHostKeyChecking=no \
+        -o ConnectTimeout=5 \
+        "${user}@${host}" 'exit 0' || \
+        error_out "could not connect to the host" 1
+
+    # Once we have the user and host,
+    # we need to check if the user has BashPass installed.
+    ssh "${user}@${host}" "command -v bashpass &> /dev/null" || \
+        error_out "BashPass is not installed on the remote host" 127
+
+    case "${2}" in
+        "--help"| "-h") help;;
+        "--version"| "-v") version;;
+        "--add"| "-a") add "${3}";;
+        "--update"| "-u") update "${3}";;
+        "--delete"| "-d") delete "${3}";;
+        "--show"| "-s") show "${3}";;
+        "--copy"| "-c") copy "${3}";;
+        "--list"| "-l") list;;
+        "--sync"| "-S") sync "${3}" "${4}";;
+        *) error_out "option '${2}' not found" 22;;
+    esac
+}
+
+# Check if an argument '${1}' is given.
+if [[ "${1}" ]]; then
+    main "${@}"
+else
+    help
+fi
