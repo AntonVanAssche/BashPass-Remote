@@ -29,7 +29,7 @@
       <a href="https://github.com/github_username/AntonVanAssche/BashPass-Remote">
          <img src="https://img.shields.io/github/issues/AntonVanAssche/BashPass-Remote.svg?style=for-the-badge">
       </a>
-      <a href="https://github.com/AntonVanAssche/BashPass-Remote/blob/master/LICENSE">
+      <a href="https://github.com/AntonVanAssche/BashPass-Remote/blob/master/LICENSE.md">
          <img src="https://img.shields.io/github/license/AntonVanAssche/BashPass-Remote.svg?style=for-the-badge">
       </a>
 </div>
