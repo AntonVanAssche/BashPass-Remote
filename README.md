@@ -36,7 +36,9 @@
 
 ## About BashPass-Remote
 
-BashPass-Remote is a simple command-line tool wrapper for BashPass, which allows you to manage your BashPass passwords stored on a remote server. Just like BashPass, BashPass-Remote is written in Bash, and is therefore compatible with most Linux distributions, BSDs, and Mac OS X. It uses SSH to establish a secure connection to the remote server, and uses BashPass to manage the passwords.
+BashPass-Remote is a simple command-line tool wrapper for [BashPass](https://www.github.com/AntonVanAssche/BashPass), which allows you to manage your [BashPass](https://www.github.com/AntonVanAssche/BashPass) passwords stored on a remote server.
+Just like BashPass, BashPass-Remote is written in Bash, and is therefore compatible with most Linux distributions, BSDs, and Mac OS X.
+It uses SSH to establish a secure connection to the remote server, and uses BashPass to manage the passwords.
 
 ## Documentation
 
