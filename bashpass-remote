@@ -127,6 +127,7 @@ copy() {
     password=$(ssh -t "${user}@${host}" '$(command -v bashpass) --show' "${1}") || \
         error_out "failed to retrieve password '${1}' from remote" 1
     password=${password#*: }
+    [[ -z "${password}" ]] && error_out "failed to strip password '${1}' from remote response" 1
 
     if [[ "${1}" ]]; then
         if printf '%s' "${password}" | "${clipboard_command}"; then
